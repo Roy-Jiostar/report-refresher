@@ -5,34 +5,64 @@ import schedule
 import time
 from flask import Flask
 
-# 1. Web server for Render's free tier
+# 1. Web server required for Render's free tier
 app = Flask(__name__)
 
 @app.route('/')
 def home():
     return "Report Refresher App is active!"
 
-# 2. REST Refresh Configuration
-# Replace the URL string inside quotes with your actual full URL
-URL = "https://brands.hotstar.com/api/v1/report/refresh?verifyToken=2c3ee3be6bc076c8e93a131c732cb2...&expDate=16-11-2026"
+# 2. GraphQL Endpoint & Headers Setup
+URL = "https://hs-adtech-ss-lego-alb-0.sgp.hotstar-prod.com/api/v2/ads-report/graphql"
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    "Accept": "application/json"
+    "accept": "application/json, text/plain, */*",
+    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+    "authorization": "Bearer 60e93936-1eb9-4b1c-8910-8a16221b1a65",
+    "businessaccountid": "6086",
+    "content-type": "application/json",
+    "origin": "https://origin-hs-adtech-ams-ops-portal.sgp.hotstar-prod.com",
+    "priority": "u=1, i",
+    "referer": "https://origin-hs-adtech-ams-ops-portal.sgp.hotstar-prod.com/",
+    "sec-ch-ua": '"Google Chrome";v="153", "Not_A Brand";v="8", "Chromium";v="153"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
 }
 
-def job():
-    print("Triggering report refresh at 7:00 AM...")
-    try:
-        response = requests.post(URL, headers=HEADERS, timeout=30)
-        print(f"Status Code: {response.status_code}")
-        print(f"Response: {response.text}")
-    except Exception as e:
-        print(f"Error firing refresh: {e}")
+# 3. GraphQL Query Payload
+PAYLOAD = {
+    "query": """
+    mutation {
+      refreshReport(request: {
+        userMeta: {
+          userId: "Roydin Dass"
+          tenant: "hotstar"
+          system: "ads-reporting"
+        }
+        reportId: "5fb43dc7-54eb-48fa-b38f-c027ea8b608f"
+      })
+    }
+    """
+}
 
+# 4. Main Refresh Job
+def job():
+    print("Triggering GraphQL report refresh...")
+    try:
+        response = requests.post(URL, headers=HEADERS, json=PAYLOAD, timeout=30)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response Body: {response.text}")
+    except Exception as e:
+        print(f"Error firing GraphQL refresh request: {e}")
+
+# 5. Scheduler Loop (09:30 SGT = 07:00 AM IST)
 def run_scheduler():
-    schedule.every().day.at("18:41").do(job)
-    print("Scheduler thread started. Waiting for 07:00 AM trigger...")
+    schedule.every().day.at("09:30").do(job)
+    print("Scheduler thread started. Waiting for 09:30 SGT (07:00 IST) trigger...")
     while True:
         schedule.run_pending()
         time.sleep(60)
