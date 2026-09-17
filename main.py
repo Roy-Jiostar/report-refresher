@@ -61,7 +61,7 @@ def job():
 
 # 5. Scheduler Loop (09:30 SGT = 07:00 AM IST)
 def run_scheduler():
-    schedule.every().day.at("09:30").do(job)
+    schedule.every().day.at("07:00").do(job)
     print("Scheduler thread started. Waiting for 09:30 SGT (07:00 IST) trigger...")
     while True:
         schedule.run_pending()
