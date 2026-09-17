@@ -1,17 +1,20 @@
 import os
+import threading
 import requests
 import schedule
 import time
+from flask import Flask
 
-# Target GraphQL Endpoint
+# 1. Tiny Web Server for Render's Free Tier
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Report Refresher App is running active!"
+
+# 2. Your 7:00 AM Refresh Logic
 URL = "https://hs-adtech-ss-lego-alb-0.sgp.hotstar-prod.com/api/v2/ads-report/graphql"
-
-# Required Headers
-HEADERS = {
-    "Content-Type": "application/json"
-}
-
-# Payload copied from your browser Network tab
+HEADERS = {"Content-Type": "application/json"}
 PAYLOAD = {
     "operationName": "RefreshReport",
     "variables": {},
@@ -27,11 +30,16 @@ def job():
     except Exception as e:
         print(f"Error executing refresh: {e}")
 
-# Schedule job for 07:00 AM daily
-schedule.every().day.at("07:00").do(job)
+def run_scheduler():
+    schedule.every().day.at("07:00").do(job)
+    print("Scheduler thread started. Waiting for 07:00 AM trigger...")
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
 
-print("Report Refresher App Started. Waiting for 7:00 AM trigger...")
+# Start scheduler in background thread
+threading.Thread(target=run_scheduler, daemon=True).start()
 
-while True:
-    schedule.run_pending()
-    time.sleep(60)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
