@@ -5,30 +5,32 @@ import schedule
 import time
 from flask import Flask
 
-# 1. Tiny Web Server for Render's Free Tier
+# 1. Web server for Render's free tier
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Report Refresher App is running active!"
+    return "Report Refresher App is active!"
 
-# 2. Your 7:00 AM Refresh Logic
-URL = "https://hs-adtech-ss-lego-alb-0.sgp.hotstar-prod.com/api/v2/ads-report/graphql"
-HEADERS = {"Content-Type": "application/json"}
-PAYLOAD = {
-    "operationName": "RefreshReport",
-    "variables": {},
-    "query": "mutation RefreshReport { refreshReport { status } }"
+# 2. REST Refresh Configuration
+# Replace the URL below with the exact full URL you copied from DevTools (including verifyToken)
+URL = "https://brands.hotstar.com/api/v1/report/refresh?verifyToken=2c3ee3be6bc076c8e93a131c732cb2...&expDate=16-11-2026"
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Accept": "application/json"
+    # Add any extra headers from your copied cURL (e.g. "Authorization": "Bearer ...")
 }
 
 def job():
-    print("Triggering daily report refresh at 7:00 AM...")
+    print("Triggering report refresh at 7:00 AM...")
     try:
-        response = requests.post(URL, json=PAYLOAD, headers=HEADERS, timeout=30)
+        # Use requests.post if cURL specifies POST, or requests.get if GET
+        response = requests.post(URL, headers=HEADERS, timeout=30)
         print(f"Status Code: {response.status_code}")
-        print(f"Response text: {response.text}")
+        print(f"Response: {response.text}")
     except Exception as e:
-        print(f"Error executing refresh: {e}")
+        print(f"Error firing refresh: {e}")
 
 def run_scheduler():
     schedule.every().day.at("07:00").do(job)
@@ -37,7 +39,6 @@ def run_scheduler():
         schedule.run_pending()
         time.sleep(60)
 
-# Start scheduler in background thread
 threading.Thread(target=run_scheduler, daemon=True).start()
 
 if __name__ == "__main__":
