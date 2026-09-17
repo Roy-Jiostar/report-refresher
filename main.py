@@ -31,7 +31,7 @@ def job():
         print(f"Error firing refresh: {e}")
 
 def run_scheduler():
-    schedule.every().day.at("18:49").do(job)
+    schedule.every().day.at("18:41").do(job)
     print("Scheduler thread started. Waiting for 07:00 AM trigger...")
     while True:
         schedule.run_pending()
